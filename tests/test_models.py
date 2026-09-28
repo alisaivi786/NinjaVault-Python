@@ -154,4 +154,4 @@ def test_presign_target_to_dict() -> None:
 def test_public_api_is_exported() -> None:
     for name in ninjavault_cdn.__all__:
         assert hasattr(ninjavault_cdn, name), name
-    assert ninjavault_cdn.__version__ == "100.42.0.1"
+    assert ninjavault_cdn.__version__ == "100.42.1"
