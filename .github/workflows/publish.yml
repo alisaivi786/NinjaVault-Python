@@ -1,0 +1,131 @@
+# Publishes ninjavault-cdn to PyPI with Trusted Publishing (OIDC) - no stored API token.
+#
+# One-time setup on PyPI (https://pypi.org/manage/account/publishing/ -> "Add a new pending publisher"
+# for a brand-new project; for an existing project use the project's Settings -> Publishing instead):
+#   PyPI Project Name : ninjavault-cdn
+#   Owner             : alisaivi786
+#   Repository name   : NinjaVault-Python
+#   Workflow name     : publish.yml
+#   Environment name  : pypi
+# A pending publisher does not reserve the project name until the first successful upload, and it
+# becomes a normal trusted publisher automatically after that upload.
+# On GitHub, create the environment `pypi` (Settings -> Environments); add required reviewers there
+# if every release should be approved by a person.
+#
+# Runs on every push to main that touches the package. It publishes only when the version in
+# src/ninjavault_cdn/_version.py is not on PyPI yet, so a release is:
+#   bump _version.py + add changesets/<version>.md + merge to main.
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'pyproject.toml'
+      - 'changesets/**'
+      - 'README.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  plan:
+    name: Check PyPI for the current version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Is this version already on PyPI?
+        id: plan
+        run: |
+          version=$(python scripts/check_changeset.py --version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          status=$(curl -sS -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/ninjavault-cdn/$version/json")
+          case "$status" in
+            200) echo "ninjavault-cdn $version is already on PyPI - nothing to publish."
+                 echo "publish=false" >> "$GITHUB_OUTPUT" ;;
+            404) echo "ninjavault-cdn $version is not on PyPI yet - publishing."
+                 echo "publish=true" >> "$GITHUB_OUTPUT" ;;
+            *)   echo "::error::Unexpected HTTP $status from PyPI; not publishing."
+                 exit 1 ;;
+          esac
+
+  publish:
+    name: Publish ${{ needs.plan.outputs.version }} to PyPI
+    needs: plan
+    if: needs.plan.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/ninjavault-cdn/${{ needs.plan.outputs.version }}/
+    permissions:
+      contents: write   # git tag + GitHub release
+      id-token: write   # OIDC token for PyPI Trusted Publishing
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Lint, type check, test
+        run: |
+          python -m ruff check src tests scripts
+          python -m mypy
+          python -m pytest --cov
+
+      - name: Change-set check
+        run: python scripts/check_changeset.py
+
+      - name: Build
+        run: |
+          rm -rf dist
+          python -m build
+          python -m twine check --strict dist/*
+
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Tag and create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists."
+            exit 0
+          fi
+          gh release create "$tag" \
+            --target "$GITHUB_SHA" \
+            --title "ninjavault-cdn $VERSION" \
+            --notes-file "changesets/$VERSION.md" \
+            dist/*
+
+      - name: Summary
+        run: |
+          echo "### Published [ninjavault-cdn $VERSION](https://pypi.org/project/ninjavault-cdn/$VERSION/)" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # The runtime floor (httpx>=0.27,<1) is a deliberate compatibility range for consumers.
+      # Raise it on purpose, not via Dependabot.
+      - dependency-name: 'httpx'
+    groups:
+      dev-tooling:
+        patterns: ['*']
