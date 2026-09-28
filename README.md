@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/ninjavault-cdn/"><img src="https://img.shields.io/pypi/v/ninjavault-cdn.svg?label=ninjavault-cdn" alt="PyPI version" /></a>
+  <a href="https://pypi.org/project/ninjavault-cdn/"><img src="https://img.shields.io/pypi/dm/ninjavault-cdn.svg" alt="PyPI downloads" /></a>
   <a href="https://pypi.org/project/ninjavault-cdn/"><img src="https://img.shields.io/pypi/pyversions/ninjavault-cdn.svg" alt="Python versions" /></a>
   <a href="https://github.com/alisaivi786/NinjaVault-Python/actions/workflows/ci.yml"><img src="https://github.com/alisaivi786/NinjaVault-Python/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/alisaivi786/NinjaVault-Python/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT" /></a>
@@ -292,7 +293,7 @@ raise `ValueError` / `TypeError` before any request is sent.
 
 ---
 
-## Logging and correlation
+## Logging, correlation and retries
 
 The SDK logs one DEBUG line per request on the `ninjavault_cdn` logger (method, URL, status, elapsed ms). It never
 logs the API key, headers or file bytes, and it adds no handlers: whether and where these lines go is your app's
@@ -325,7 +326,23 @@ proxies, retries (for example `httpx.HTTPTransport(retries=3)`) on it instead; p
 
 ---
 
-## Testing your code
+### Retries
+
+The SDK never retries on its own, so a retry can't upload a file twice behind your back. Two easy options:
+
+```python
+import httpx
+from ninjavault_cdn import NinjaVaultCdnClient
+
+# Retry failed connections (DNS, refused, TLS) up to 3 times
+cdn = NinjaVaultCdnClient(http_client=httpx.Client(transport=httpx.HTTPTransport(retries=3), timeout=30))
+```
+
+For rate limits (`42901`), wait `ex.retry_after` seconds and try again, as in the error-handling example above.
+
+---
+
+## Unit testing your code
 
 Swap the transport with `httpx.MockTransport` to exercise your code without a network:
 
@@ -382,13 +399,17 @@ service = BrandingService(cdn)
 | Typing | Ships `py.typed`; checked with `mypy --strict` |
 | Server | NinjaVault CDN Server `/api/v1` API-key routes |
 
-## Other languages
+## NinjaVault SDKs
 
-| Language | Package |
-|---|---|
-| .NET | [`NinjaVault.Cdn`](https://www.nuget.org/packages/NinjaVault.Cdn) ([source](https://github.com/alisaivi786/NinjaVault)) |
-| Node.js / TypeScript | [`@ninjavault/cdn`](https://github.com/alisaivi786/NinjaVault-Node) |
-| Python | `ninjavault-cdn` (this package) |
+The same CDN client in every language, with the same features and the **same version number** (for example `100.42.1` everywhere):
+
+| Language | Package | Install | Source |
+|---|---|---|---|
+| .NET 8+ | [`NinjaVault.Cdn`](https://www.nuget.org/packages/NinjaVault.Cdn) | `dotnet add package NinjaVault.Cdn` | [NinjaVault](https://github.com/alisaivi786/NinjaVault) |
+| Python 3.10+ | [`ninjavault-cdn`](https://pypi.org/project/ninjavault-cdn/) | `pip install ninjavault-cdn` | [NinjaVault-Python](https://github.com/alisaivi786/NinjaVault-Python) |
+| Node.js 18+ | [`@ninjavault/cdn`](https://www.npmjs.com/package/@ninjavault/cdn) | `npm install @ninjavault/cdn` | [NinjaVault-Node](https://github.com/alisaivi786/NinjaVault-Node) |
+
+---
 
 ## Links
 
