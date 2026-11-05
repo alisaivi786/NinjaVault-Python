@@ -196,7 +196,7 @@ class UploadParts:
 
 def prepare_upload(
     bucket: str,
-    tenant_id: int | str,
+    tenant_id: object,
     file: FileContent,
     file_name: str | None,
     content_type: str | None,
@@ -204,9 +204,10 @@ def prepare_upload(
     folder_path: str | None,
 ) -> UploadParts:
     require_text(bucket, "bucket")
+    # Tenant ids are strings (GUIDs). An int is still accepted for callers of older versions.
     if isinstance(tenant_id, bool) or not isinstance(tenant_id, (int, str)):
-        raise TypeError("tenant_id must be an int or a str.")
-    tenant_text = str(tenant_id)
+        raise TypeError("tenant_id must be a str (tenant GUID).")
+    tenant_text = str(tenant_id).strip()
     require_text(tenant_text, "tenant_id")
 
     opened: IO[bytes] | None = None

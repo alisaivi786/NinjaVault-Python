@@ -69,7 +69,7 @@ def test_get_access_context_sends_api_key_and_parses_envelope(
     assert request.headers["User-Agent"] == f"ninjavault-cdn-python/{__version__}"
     assert request.headers["Accept"] == "application/json"
     assert access.name == "billing-service"
-    assert access.allowed_tenant_ids == (42, "0f8fad5b-d9cb-469f-a165-70867728950e")
+    assert access.allowed_tenant_ids == ("42", "0f8fad5b-d9cb-469f-a165-70867728950e")
     assert access.buckets[0].visibility is BucketVisibility.PRIVATE
 
 
@@ -126,8 +126,8 @@ def test_access_context_tenant_ids_as_strings_from_live_server(
         )
     )
     access = client.get_access_context()
-    assert access.allowed_tenant_ids == (1,)
-    assert isinstance(access.allowed_tenant_ids[0], int)
+    assert access.allowed_tenant_ids == ("1",)
+    assert isinstance(access.allowed_tenant_ids[0], str)
 
 
 def test_base_url_path_prefix_is_kept(recorder: Recorder) -> None:
@@ -160,7 +160,7 @@ def test_upload_sends_multipart_fields(client: NinjaVaultCdnClient, recorder: Re
 
     result = client.upload(
         "documents",
-        42,
+        "0f8fad5b-d9cb-469f-a165-70867728950e",
         io.BytesIO(b"%PDF"),
         "invoice.pdf",
         "application/pdf",
@@ -175,7 +175,7 @@ def test_upload_sends_multipart_fields(client: NinjaVaultCdnClient, recorder: Re
     parts = parse_multipart(request)
     assert list(parts) == ["Bucket", "TenantId", "OwnerId", "FolderPath", "File"]
     assert parts["Bucket"][1] == b"documents"
-    assert parts["TenantId"][1] == b"42"
+    assert parts["TenantId"][1] == b"0f8fad5b-d9cb-469f-a165-70867728950e"
     assert parts["OwnerId"][1] == b"1001"
     assert parts["FolderPath"][1] == b"reports/2026"
     file_headers, file_body = parts["File"]
@@ -208,7 +208,7 @@ def test_upload_from_path_defaults_file_name_and_closes_file(
     source = tmp_path / "photo.png"
     source.write_bytes(b"\x89PNG")
 
-    client.upload("documents", 42, source, folder_path="   ")
+    client.upload("documents", "42", source, folder_path="   ")
 
     parts = parse_multipart(recorder.last)
     assert "FolderPath" not in parts
@@ -242,7 +242,7 @@ def test_upload_from_path_without_name_is_closed_when_invalid(
     source = tmp_path / "x.bin"
     source.write_bytes(b"x")
     with pytest.raises(ValueError, match="file_name"):
-        client.upload("documents", 1, source, file_name=" ")
+        client.upload("documents", "1", source, file_name=" ")
     source.unlink()
 
 
@@ -259,7 +259,7 @@ def test_list_files_builds_server_query_names(
     )
     query = FileListQuery(
         bucket="documents",
-        tenant_id=42,
+        tenant_id="0f8fad5b-d9cb-469f-a165-70867728950e",
         owner_id=1001,
         object_key_prefix="reports/2026",
         file_name_contains="in voice",
@@ -278,7 +278,7 @@ def test_list_files_builds_server_query_names(
     page = client.list_files(query)
 
     assert str(recorder.last.url) == (
-        f"{BASE_URL}/api/v1/files?bucket=documents&tenantId=42&ownerId=1001"
+        f"{BASE_URL}/api/v1/files?bucket=documents&tenantId=0f8fad5b-d9cb-469f-a165-70867728950e&ownerId=1001"
         "&objectKeyPrefix=reports%2F2026&fileNameContains=in%20voice"
         "&contentType=application%2Fpdf&category=Document&visibility=Private"
         "&createdFromUTC=2026-09-01T00%3A00%3A00Z&createdToUTC=2026-09-28T07%3A00%3A00Z"
@@ -288,7 +288,7 @@ def test_list_files_builds_server_query_names(
     assert page.page == 2
     assert page.page_size == 10
     item = page.items[0]
-    assert item.tenant_id == 42
+    assert item.tenant_id == "42"
     assert item.owner_id == 1001
     assert item.category is FileCategory.DOCUMENT
     assert item.thumbnail_status is ThumbnailStatus.NOT_APPLICABLE
@@ -551,7 +551,7 @@ def test_error_envelope_maps_to_cdn_api_error(
     )
 
     with pytest.raises(CdnApiError) as caught:
-        client.upload("documents", 42, b"x", "a.pdf", folder_path="a b")
+        client.upload("documents", "42", b"x", "a.pdf", folder_path="a b")
 
     error = caught.value
     assert error.status_code == 400

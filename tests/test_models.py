@@ -81,7 +81,7 @@ def test_file_object_is_tolerant() -> None:
         }
     )
     assert info.id == "x"
-    assert info.tenant_id == 42
+    assert info.tenant_id == "42"
     assert info.owner_id == 17
     assert info.size_bytes == 12
     assert info.created_at_utc == MIN_DATETIME
@@ -92,14 +92,14 @@ def test_file_object_is_tolerant() -> None:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("1", 1),
-        (7, 7),
-        (" 42 ", 42),
+        ("1", "1"),
+        (7, "7"),
+        (" 42 ", "42"),
         ("0f8fad5b-d9cb-469f-a165-70867728950e", "0f8fad5b-d9cb-469f-a165-70867728950e"),
         (None, ""),
     ],
 )
-def test_tenant_ids_accept_numbers_numeric_strings_and_guids(raw: object, expected: object) -> None:
+def test_tenant_ids_are_always_strings(raw: object, expected: object) -> None:
     assert FileObject.from_dict({"tenantId": raw}).tenant_id == expected
     if raw is not None:
         assert AccessContext.from_dict({"allowedTenantIds": [raw, None]}).allowed_tenant_ids == (
@@ -154,4 +154,4 @@ def test_presign_target_to_dict() -> None:
 def test_public_api_is_exported() -> None:
     for name in ninjavault_cdn.__all__:
         assert hasattr(ninjavault_cdn, name), name
-    assert ninjavault_cdn.__version__ == "100.42.1"
+    assert ninjavault_cdn.__version__ == "100.43.0"

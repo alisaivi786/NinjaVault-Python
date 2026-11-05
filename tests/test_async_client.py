@@ -96,7 +96,7 @@ async def test_upload_multipart(
     source = tmp_path / "doc.pdf"
     source.write_bytes(b"%PDF")
 
-    result = await aclient.upload("documents", 7, source, owner_id=5, folder_path="a/b")
+    result = await aclient.upload("documents", "7", source, owner_id=5, folder_path="a/b")
 
     parts = parse_multipart(recorder.last)
     assert list(parts) == ["Bucket", "TenantId", "OwnerId", "FolderPath", "File"]

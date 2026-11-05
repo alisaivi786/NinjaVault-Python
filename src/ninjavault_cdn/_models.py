@@ -88,21 +88,16 @@ def format_datetime(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def to_tenant_id(value: object) -> int | str:
-    """Tenant ids are strings on the wire: a positive integer (``"42"``) or a GUID.
+def to_tenant_id(value: object) -> str:
+    """Tenant ids are always ``str``: a GUID (older tenants may have numeric ids such as ``"42"``).
 
-    Numeric ids (JSON numbers or numeric strings) become ``int``; GUIDs stay ``str``.
+    A JSON number is accepted too and kept as its text (``42`` -> ``"42"``).
     """
     if value is None:
         return ""
     if isinstance(value, bool):
         return str(value).lower()
-    if isinstance(value, int):
-        return value
-    text = str(value).strip()
-    if text.isascii() and text.isdigit():
-        return int(text)
-    return text
+    return str(value).strip()
 
 
 class _Fields:
@@ -158,10 +153,10 @@ class _Fields:
             return []
         return [item for item in value if isinstance(item, Mapping)]
 
-    def tenant_id(self, name: str) -> int | str:
+    def tenant_id(self, name: str) -> str:
         return to_tenant_id(self.raw(name))
 
-    def tenant_ids(self, name: str) -> tuple[int | str, ...]:
+    def tenant_ids(self, name: str) -> tuple[str, ...]:
         value = self.raw(name)
         if not isinstance(value, list):
             return ()
@@ -199,15 +194,14 @@ class AccessContext:
     """What the configured API key is and what it may reach (``GET /api/v1/me``).
 
     Empty ``allowed_buckets`` / ``allowed_tenant_ids`` mean *unrestricted*, not "no access".
-    Tenant ids are strings on the wire (``["1"]``); numeric ones are exposed as ``int`` and GUID
-    tenant ids stay ``str``.
+    Tenant ids are always ``str`` (GUIDs, e.g. ``"0f8fad5b-d9cb-469f-a165-70867728950e"``).
     """
 
     name: str
     is_unrestricted: bool
     is_admin: bool
     allowed_buckets: tuple[str, ...]
-    allowed_tenant_ids: tuple[int | str, ...]
+    allowed_tenant_ids: tuple[str, ...]
     buckets: tuple[AccessBucket, ...]
 
     @classmethod
@@ -293,7 +287,7 @@ class FileObject:
     """
 
     id: str
-    tenant_id: int | str
+    tenant_id: str
     owner_id: int | None
     bucket: str
     object_key: str
@@ -495,7 +489,7 @@ class FileListQuery:
     """
 
     bucket: str | None = None
-    tenant_id: int | str | None = None
+    tenant_id: str | None = None
     owner_id: int | None = None
     object_key_prefix: str | None = None
     file_name_contains: str | None = None

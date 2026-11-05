@@ -125,7 +125,7 @@ class NinjaVaultCdnClient:
     def upload(
         self,
         bucket: str,
-        tenant_id: int | str,
+        tenant_id: str,
         file: bytes | bytearray | memoryview | IO[bytes] | Path,
         file_name: str | None = None,
         content_type: str | None = None,

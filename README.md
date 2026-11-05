@@ -72,8 +72,8 @@ from ninjavault_cdn import AsyncNinjaVaultCdnClient
 
 async def main() -> None:
     async with AsyncNinjaVaultCdnClient() as cdn:
-        uploaded = await cdn.upload("documents", 42, b"%PDF-1.7 ...", "invoice.pdf", "application/pdf")
-        page = await cdn.list_files(bucket="documents", tenant_id=42, page_size=20)
+        uploaded = await cdn.upload("documents", "0f8fad5b-d9cb-469f-a165-70867728950e", b"%PDF-1.7 ...", "invoice.pdf", "application/pdf")
+        page = await cdn.list_files(bucket="documents", tenant_id="0f8fad5b-d9cb-469f-a165-70867728950e", page_size=20)
         print(uploaded.object_key, page.total_count)
 
 asyncio.run(main())
@@ -116,7 +116,7 @@ access = cdn.get_access_context()
 # access.allowed_buckets / access.allowed_tenant_ids empty = unrestricted, not "no access"
 ```
 
-Tenant ids are `int` when numeric (the server sends them as strings, e.g. `["1"]`) and stay `str` for GUID tenants.
+Tenant ids are always `str` (GUIDs, e.g. `"0f8fad5b-d9cb-469f-a165-70867728950e"`). A numeric id the server sends is kept as text (`"42"`).
 
 ---
 
@@ -129,7 +129,7 @@ All examples use the sync client. With `AsyncNinjaVaultCdnClient`, `await` the s
 ```python
 uploaded = cdn.upload(
     "documents",                 # bucket
-    42,                          # tenant id: int or GUID string
+    "0f8fad5b-d9cb-469f-a165-70867728950e",  # tenant id (GUID string)
     Path("report.docx"),         # bytes, a binary file object, or a pathlib.Path
     file_name="report.docx",     # defaults to the Path's name
     content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -220,7 +220,7 @@ from ninjavault_cdn import FileCategory, FileListQuery, FileSortBy
 
 page = cdn.list_files(FileListQuery(
     bucket="documents",
-    tenant_id=42,
+    tenant_id="0f8fad5b-d9cb-469f-a165-70867728950e",
     owner_id=1001,
     object_key_prefix="reports/2026",
     file_name_contains="invoice",
@@ -401,7 +401,7 @@ service = BrandingService(cdn)
 
 ## NinjaVault SDKs
 
-The same CDN client in every language, with the same features and the **same version number** (for example `100.42.1` everywhere):
+The same CDN client in every language, with the same features and the **same version number** (for example `100.43.0` everywhere):
 
 | Language | Package | Install | Source |
 |---|---|---|---|

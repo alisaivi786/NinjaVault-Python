@@ -3,7 +3,7 @@
 PyPI never accepts the same version twice, so every release needs a new version number.
 
 All NinjaVault SDKs share one three-part version number: `ninjavault-cdn`, `@ninjavault/cdn` (npm) and
-`NinjaVault.Cdn` (NuGet) are all `100.42.1`. Use three parts (npm allows no more), and release every SDK with the
+`NinjaVault.Cdn` (NuGet) are all `100.43.0`. Use three parts (npm allows no more), and release every SDK with the
 same new number when the shared feature set changes.
 
 ## Every release
